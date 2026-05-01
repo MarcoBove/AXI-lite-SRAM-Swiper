@@ -1,0 +1,54 @@
+Scomposizione in Blocchi Logici (Architettura)
+
+Io dividerei il design in tre macro-sezioni principali:
+
+    Blocco AXI4-Lite Slave (Gestione Registri): Questo processo si occuperà esclusivamente di "parlare" con il bus AXI. Riceverà le richieste di scrittura per configurare i registri (SRC_ADDR, NUM_W, ecc.) e le richieste di lettura per esporre lo stato (PRELOAD_DONE, SWIPE_DONE).
+
+    Macchina a Stati Finiti (FSM) di Controllo: Questo è il cervello del tuo swiper. Monitorerà i segnali di start provenienti dai registri e coordinerà le operazioni verso la SRAM.
+
+    Datapath (Logica Operativa): Conterrà i contatori per gli indirizzi, i registri temporanei per salvare i dati letti dalla SRAM e il sommatore (l'operazione di +1).
+
+2. Impostazione dei Registri
+
+Assicurati di mappare correttamente i registri indicati nella specifica a degli offset AXI specifici (es. 0x00, 0x04, 0x08, ecc.).
+
+    Registri di Configurazione (Read/Write): SRC_ADDR, PRELOAD_START (che nell'immagine sembra indicare un indirizzo di destinazione, verifica bene le tue specifiche interne), NUM_W.
+
+    Registri di Trigger/Controllo (Write-only o Write-to-clear): SWIPE_START e il comando di inizio preload. Di solito, quando si scrive in questi registri, il blocco AXI genera un segnale di "impulso" (un tick lungo un solo ciclo di clock) che fa scattare la FSM.
+
+    Registri di Stato (Read-only): PRELOAD_DONE e SWIPE_DONE. Questi saranno pilotati direttamente dalla tua FSM.
+
+3. Struttura della Macchina a Stati (FSM)
+
+La tua FSM dovrà gestire due flussi di lavoro completamente separati. Ecco un'idea degli stati di cui avrai bisogno:
+
+Stato di Riposo:
+
+    IDLE: La FSM aspetta. Se riceve l'impulso di Preload Start, va nel ramo Preload. Se riceve l'impulso di Swipe Start, va nel ramo Swipe. Azzera i flag di Done se necessario.
+
+Ramo Preload (Scrittura massiva):
+
+    PRELOAD_WRITE: In questo stato, imposti l'indirizzo della SRAM, metti il dato statico sul bus dati in ingresso alla SRAM e attivi il Write Enable. Ad ogni colpo di clock incrementi un contatore interno.
+
+    PRELOAD_CHECK: Controlli se hai raggiunto la fine della SRAM. Se no, torni a PRELOAD_WRITE. Se sì, alzi il flag PRELOAD_DONE e torni in IDLE.
+
+Ramo Swipe (Lettura, Modifica, Scrittura):
+
+    SWIPE_READ_REQ: Metti l'indirizzo attuale (partendo da SRC_ADDR) sul bus indirizzi della SRAM e richiedi una lettura.
+
+    SWIPE_WAIT_READ: A seconda della latenza della tua SRAM, potresti dover aspettare uno o più cicli di clock affinché il dato in uscita sia valido.
+
+    SWIPE_MODIFY_WRITE: Prendi il dato letto, aggiungi 1 (qui interviene il datapath), lo rimetti sul bus dati in ingresso alla SRAM, mantieni lo stesso indirizzo di prima e attivi il Write Enable.
+
+    SWIPE_CHECK_COUNT: Incrementi l'indirizzo attuale e il contatore delle parole elaborate. Se il contatore è uguale a NUM_W, alzi il flag SWIPE_DONE e torni in IDLE. Altrimenti, torni a SWIPE_READ_REQ.
+
+4. Suggerimenti per l'Implementazione
+
+    Parti dall'interfaccia AXI: Usa un template standard per un AXI4-Lite Slave. Vivado, ad esempio, ne genera uno in automatico molto comodo. Sostituisci i registri di default con quelli richiesti dal tuo esercizio.
+
+    Isola i domini: Tieni il processo della FSM separato dal processo dell'interfaccia AXI. Fai comunicare le due parti solo tramite segnali interni (es. start_swipe_sig, swipe_done_sig, cfg_src_addr_sig).
+
+    Latenza SRAM: Presta molta attenzione a come funziona il codice SRAM che già possiedi. Se è sincrona (il dato esce al fronte di clock successivo alla richiesta), la tua FSM nel ramo Swipe dovrà tenerne conto, altrimenti leggerai e modificherai dati spazzatura.
+
+
+    Visto che hai già il codice della SRAM, che tipo di latenza ha in lettura (il dato è disponibile nello stesso ciclo in cui fornisci l'indirizzo, o in quello successivo)? Questo è il dettaglio più critico per disegnare gli stati corretti della FSM per l'operazione di Swipe.
