@@ -19,7 +19,7 @@ entity AXI_Lite_SRAM_Swiper is
                 sram_addr   : out std_logic_vector(31 downto 0); -- Adegua la larghezza ai tuoi indirizzi
                 sram_wdata  : out std_logic_vector(31 downto 0);
                 sram_rdata  : in  std_logic_vector(31 downto 0);
-                sram_we     : out std_logic;
+                sram_we     : out std_logic_vector(3 downto 0);
                 sram_en     : out std_logic;
                 -- User ports ends
                 -- Do not modify the ports beyond this line
@@ -63,7 +63,7 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper is
                 sram_addr   : out std_logic_vector(31 downto 0);
                 sram_wdata  : out std_logic_vector(31 downto 0);
                 sram_rdata  : in  std_logic_vector(31 downto 0);
-                sram_we     : out std_logic;
+                sram_we     : out std_logic_vector(3 downto 0);
                 sram_en     : out std_logic;
                 -- User ports ends
                 S_AXI_ACLK      : in std_logic;

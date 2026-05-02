@@ -19,7 +19,7 @@ entity AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
         sram_addr   : out std_logic_vector(31 downto 0);
         sram_wdata  : out std_logic_vector(31 downto 0);
         sram_rdata  : in  std_logic_vector(31 downto 0);
-        sram_we     : out std_logic;
+        sram_we     : out std_logic_vector(3 downto 0);
         sram_en     : out std_logic;
         -- User ports ends
         -- Do not modify the ports beyond this line
@@ -131,7 +131,35 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
     constant Wdata: std_logic_vector(1 downto 0) := "11";
     --State machine variables
     signal state_read : std_logic_vector(1 downto 0);
-    signal state_write: std_logic_vector(1 downto 0); 
+    signal state_write: std_logic_vector(1 downto 0);
+    
+    -- FSM Component declaration
+    component SRAM_Swiper_FSM is
+        port (
+            -- Clock e Reset
+            clk             : in  std_logic;
+            areset_n        : in  std_logic;
+
+            -- Interfaccia dai Registri AXI (Input)
+            -- Nota: collegheremo questi ai slv_regX del modulo AXI
+            src_addr_in     : in  std_logic_vector(31 downto 0);
+            num_w_in        : in  std_logic_vector(31 downto 0);
+            preload_start   : in  std_logic; -- Impulso di start per preload
+            swipe_start     : in  std_logic; -- Impulso di start per lo swipe
+
+            -- Interfaccia verso i Registri AXI (Output di Stato)
+            preload_done    : out std_logic;
+            swipe_done      : out std_logic;
+
+            -- Interfaccia Master verso la SRAM
+            sram_addr       : out std_logic_vector(31 downto 0);
+            sram_wdata      : out std_logic_vector(31 downto 0);
+            sram_rdata      : in  std_logic_vector(31 downto 0);
+            sram_we         : out std_logic_vector(3 downto 0); -- 4 bit per gestire i byte
+            sram_en         : out std_logic
+        );
+    end component;
+
 begin
     -- I/O Connections assignments
 
@@ -360,6 +388,29 @@ begin
                    (others => '0');
 
     -- Add user logic here
+    
+    i_swiper_fsm : component SRAM_Swiper_FSM
+        port map (
+            clk             => S_AXI_ACLK,
+            areset_n        => S_AXI_ARESETN,
+            
+            -- Ingressi dai registri slv_reg
+            src_addr_in     => slv_reg0,
+            num_w_in        => slv_reg3,
+            preload_start   => slv_reg1(0), -- Prendiamo il primo bit come trigger
+            swipe_start     => slv_reg4(0),
+            
+            -- Uscite verso i registri slv_reg (Stato)
+            preload_done    => slv_reg2(0), -- Scriverà nel registro di stato
+            swipe_done      => slv_reg5(0),
+            
+            -- Uscite verso l'esterno (i pin sram che avevamo aggiunto all'entity)
+            sram_addr       => sram_addr,
+            sram_wdata      => sram_wdata,
+            sram_rdata      => sram_rdata,
+            sram_we         => sram_we,
+            sram_en         => sram_en
+        );
 
     -- User logic ends
 

@@ -78,3 +78,24 @@ l Master AXI (Processore esterno) comanda il tuo blocco (Slave AXI).
     La tua FSM agisce da Master verso la SRAM, generando in autonomia tutti gli indirizzi e i segnali di read/write per eseguire il ciclo di swipe, senza più disturbare il processore finché non ha finito.
 
 Visto che il Master AXI vero e proprio è un componente esterno (come una CPU), quando scriverai il codice, come pensi di testarlo? Hai già in mente di scrivere un Testbench in VHDL che "finge" di essere il processore per simulare l'invio dei segnali AXI al tuo Swiper?
+
+
+L'Architettura Ideale (3 File)
+
+    File 1: Il Top-Level AXI (AXI_Lite_SRAM_Swiper.vhd)
+
+        Il "guscio" esterno che abbiamo corretto prima.
+
+    File 2: L'Interfaccia AXI (..._S00_AXI.vhd)
+
+        Il file che abbiamo appena pulito. Si occupa solo di parlare con il bus AXI e salvare i dati nei registri slv_reg0, slv_reg1, ecc.
+
+        In fondo a questo file (nella sezione Add user logic here), non scriverai i processi della tua FSM, ma andrai semplicemente a istanziare (con un component e un port map) il tuo blocco FSM dedicato.
+
+    File 3: Il tuo Swiper FSM (es. SRAM_Swiper_FSM.vhd)
+
+        Un file VHDL completamente nuovo, creato da te da zero.
+
+        Avrà come ingressi i comandi (collegati ai vari slv_reg dell'AXI) e come uscite i flag di stato e i pin di controllo della SRAM.
+
+        Qui dentro scriverai la tua Macchina a Stati pulita e isolata.

@@ -54,14 +54,15 @@ begin
         elsif rising_edge(clk) then
             -- If chip select
             CS_IF: if cs = '1' then
+                
+                -- Convert to integer
+                v_addr_idx := to_integer(unsigned(addr));
+
                 -- Defensive check for address range
                 assert (v_addr_idx < NUM_WORDS)
                     report "[ERROR] v_addr_idx (" & to_String(v_addr_idx) & ") > " &
                         " DATA_WIDTH (" & integer'image(DATA_WIDTH) & ")"
                     severity failure;
-
-                -- Convert to integer
-                v_addr_idx := to_integer(unsigned(addr));
 
                 -- For each byte
                 BYTE_LOOP: for i in 0 to (DATA_WIDTH/8)-1 loop
