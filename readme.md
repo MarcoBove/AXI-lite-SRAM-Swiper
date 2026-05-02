@@ -52,3 +52,29 @@ Ramo Swipe (Lettura, Modifica, Scrittura):
 
 
     Visto che hai già il codice della SRAM, che tipo di latenza ha in lettura (il dato è disponibile nello stesso ciclo in cui fornisci l'indirizzo, o in quello successivo)? Questo è il dettaglio più critico per disegnare gli stati corretti della FSM per l'operazione di Swipe.
+
+
+    Come si applica al tuo SRAM Swiper?
+
+Quando il processore vorrà far partire lo swipe scriverà nel tuo registro SWIPE_START.
+Cosa succederà fisicamente sui pin del tuo blocco in quel momento?
+
+    Il processore metterà l'indirizzo del registro sul canale AW e alzerà AWVALID.
+
+    Contemporaneamente metterà il dato (es. un "1") sul canale W e alzerà WVALID.
+
+    Il tuo blocco AXI Slave dovrà rispondere alzando AWREADY e WREADY per "catturare" l'indirizzo e il dato.
+
+    Infine, il tuo blocco alzerà BVALID sul canale di risposta per dire al processore "Fatto!".
+
+Visto che il tuo blocco deve fare da Slave e "ascoltare" i comandi, hai già pensato a come gestire i tuoi segnali READY (cioè se tenerli sempre alti di default o alzarli solo a determinate condizioni) per far sì che il processore non si blocchi mentre cerca di comunicare con lo Swiper?
+
+l Master AXI (Processore esterno) comanda il tuo blocco (Slave AXI).
+
+    I comandi del processore vengono salvati nei tuoi registri interni.
+
+    La tua FSM legge questi registri, si sveglia e dice: "Ok, il capo (Processore) mi ha detto di fare lo swipe. Ora comando io".
+
+    La tua FSM agisce da Master verso la SRAM, generando in autonomia tutti gli indirizzi e i segnali di read/write per eseguire il ciclo di swipe, senza più disturbare il processore finché non ha finito.
+
+Visto che il Master AXI vero e proprio è un componente esterno (come una CPU), quando scriverai il codice, come pensi di testarlo? Hai già in mente di scrivere un Testbench in VHDL che "finge" di essere il processore per simulare l'invio dei segnali AXI al tuo Swiper?
