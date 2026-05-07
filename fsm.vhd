@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 entity SRAM_Swiper_FSM is
     port (
-        -- Clock e Reset
+        -- Clock and Reset
         clk             : in  std_logic;
         areset_n        : in  std_logic;
 
@@ -28,73 +28,119 @@ entity SRAM_Swiper_FSM is
     );
 end SRAM_Swiper_FSM;
 
-architecture rtl of SRAM_Swiper_FSM is
 
-    -- Definizione degli stati (Aggiungi qui i tuoi stati)
-    type state_type is (IDLE, PRELOAD_OP, SWIPE_READ, SWIPE_MODIFY, SWIPE_WRITE, DONE);
-    signal current_state, next_state : state_type;
+architecture behavioural of SRAM_Swiper_FSM  is
 
-    -- Segnali interni (Contatori, registri temporanei per il dato letto, ecc.)
-    -- Esempio: signal addr_counter : unsigned(31 downto 0);
+    component counter is
+        generic (
+            DATA_WIDTH : integer := 32
+        );
+        port (
+            clk      : in  STD_LOGIC;
+            areset_n : in  STD_LOGIC;
+            clear    : in  STD_LOGIC;
+            en       : in  STD_LOGIC;
+            q        : out STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0)
+        );
+    end component;
+
+    -- Enumerative type for FSM state
+    type state_t is (
+        IDLE,
+        PRELOAD_WRITE,
+        PRELOAD_UPDATE,
+        PRELOAD_FINISH
+    );
+
+    -- State register
+    signal state_q, state_d: state_t;
+
+    -- Datapath Counter Registers
+    signal sig_cnt_q : std_logic_vector(31 downto 0);
+    signal sig_cnt_en : std_logic;
+    signal sig_cnt_clear : std_logic;
 
 begin
+    --Instance
+    i_address_counter: counter
+        generic map (
+            DATA_WIDTH => 32
+        )
+        port map (
+            clk      => clk,
+            areset_n => areset_n,
+            clear    => sig_cnt_clear,
+            en       => sig_cnt_en,   
+            q        => sig_cnt_q      
+        );
 
-    -----------------------------------------------------
-    -- Processo 1: Registro dello Stato (Sincrono)
-    -----------------------------------------------------
-    state_reg: process(clk, areset_n)
+    -- Moore Output: Only depends on the state
+
+        sram_wdata <= x"AAAA5555"; --101010101010...
+
+        sram_addr <= sig_cnt_q;
+
+        sram_en <= '1' when state_q = PRELOAD_WRITE else '0';
+        sram_we <= "1111" when state_q = PRELOAD_WRITE else "0000";
+        preload_done <= '1' when state_q = PRELOAD_FINISH else '0';
+
+        sig_cnt_clear <= '1' when state_q = IDLE else '0';
+        sig_cnt_en <= '1' when state_q = PRELOAD_UPDATE else '0';
+
+        swipe_done <= '0';
+        
+
+    -- Next state logic
+    next_state_proc: process(state_q, preload_start, num_w_in, sig_cnt_q) --qua poi mettere swipe_start
     begin
-        if areset_n = '0' then
-            current_state <= IDLE;
-        elsif rising_edge(clk) then
-            current_state <= next_state;
-        end if;
-    end process;
+        state_d <= state_q; -- Default: rimani nello stato attuale
 
-    -----------------------------------------------------
-    -- Processo 2: Logica dello Stato Prossimo (Combinatorio)
-    -----------------------------------------------------
-    -- Qui decidi come passare da uno stato all'altro
-    next_state_logic: process(current_state, preload_start, swipe_start)
-    begin
-        next_state <= current_state; -- Default: rimani nello stato attuale
-
-        case current_state is
+        case state_q is
             when IDLE =>
                 if preload_start = '1' then
-                    next_state <= PRELOAD_OP;
-                elsif swipe_start = '1' then
-                    next_state <= SWIPE_READ;
+                    state_d <= PRELOAD_WRITE;
                 end if;
 
-            when PRELOAD_OP =>
-                -- Scrivi qui la logica per finire il preload
+            when PRELOAD_WRITE =>
+                state_d <= PRELOAD_UPDATE;
+            
+            when PRELOAD_UPDATE =>
+                if(unsigned(sig_cnt_q) = unsigned(num_w_in) - 1) then -- qua devo mettere un adder
+                    state_d <= PRELOAD_FINISH;
+                else
+                    state_d <= PRELOAD_WRITE;
+                end if;
+
+            when PRELOAD_FINISH =>
+                state_d <= IDLE;
             
             when others =>
-                next_state <= IDLE;
+                state_d <= IDLE;
         end case;
-    end process;
+    end process next_state_proc;
 
-    -----------------------------------------------------
-    -- Processo 3: Logica delle Uscite
-    -----------------------------------------------------
-    -- Qui piloti sram_addr, sram_we, preload_done, ecc.
-    output_logic: process(current_state)
+    -- Memory Process
+    reg_proc: process(clk, areset_n)
     begin
-        -- Valori di default per evitare latch
-        sram_en    <= '0';
-        sram_we    <= (others => '0');
-        preload_done <= '0';
-        swipe_done   <= '0';
+        if areset_n = '0' then
+            state_q <= IDLE;
+        elsif rising_edge(clk) then
+            state_q <= state_d;
+        end if;
+    end process reg_proc;
 
-        case current_state is
-            when PRELOAD_OP =>
-                sram_en <= '1';
-                -- sram_we <= "1111"; 
-                -- ecc...
-            when others =>
-                null;
-        end case;
-    end process;
+    -- Debug process: log incoming sequence
+    -- log_proc: process (clk, areset_n)
+    --     constant LOG_DEPTH : integer := 64;
+    --     variable v_log : STD_LOGIC_VECTOR( LOG_DEPTH -1 downto 0 );
+    -- begin
+    --     -- On clock edge
+    --     if rising_edge(clk) then
+    --         -- Shift in data_in and shift right the rest
+    --         v_log(LOG_DEPTH-1 downto 0) := data_in & v_log(LOG_DEPTH-1 downto 1);
+    --         -- Dump
+    --         report "[DEBUG] v_log: " & to_string(v_log);
+    --     end if;
+    -- end process log_proc;
 
-end rtl;
+end behavioural;
