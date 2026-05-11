@@ -16,7 +16,7 @@ entity AXI_Lite_SRAM_Swiper is
         );
         port (
                 -- Users to add ports here
-                sram_addr   : out std_logic_vector(31 downto 0); -- Adegua la larghezza ai tuoi indirizzi
+                sram_addr   : out std_logic_vector(31 downto 0); 
                 sram_wdata  : out std_logic_vector(31 downto 0);
                 sram_rdata  : in  std_logic_vector(31 downto 0);
                 sram_we     : out std_logic_vector(3 downto 0);

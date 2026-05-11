@@ -397,14 +397,14 @@ begin
             -- Ingressi dai registri slv_reg
             src_addr_in     => slv_reg0,
             num_w_in        => slv_reg3,
-            preload_start   => slv_reg1(0), -- Prendiamo il primo bit come trigger
+            preload_start   => slv_reg1(0), 
             swipe_start     => slv_reg4(0),
             
             -- Uscite verso i registri slv_reg (Stato)
-            preload_done    => slv_reg2(0), -- Scriverà nel registro di stato
+            preload_done    => slv_reg2(0), 
             swipe_done      => slv_reg5(0),
             
-            -- Uscite verso l'esterno (i pin sram che avevamo aggiunto all'entity)
+            -- Uscite verso l'esterno 
             sram_addr       => sram_addr,
             sram_wdata      => sram_wdata,
             sram_rdata      => sram_rdata,
