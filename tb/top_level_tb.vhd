@@ -2,10 +2,10 @@ library ieee;
 use ieee.STD_LOGIC_1164.all;
 use ieee.numeric_std.all; 
 
-entity fsm_tb is
-end fsm_tb;
+entity top_level_tb is
+end top_level_tb;
 
-architecture behavioural of fsm_tb is
+architecture behavioural of top_level_tb is
 
     -- 1. DUT connections 
     signal clk             : std_logic := '0';
@@ -14,20 +14,15 @@ architecture behavioural of fsm_tb is
     signal num_w_in        : std_logic_vector(31 downto 0) := (others => '0');
     signal preload_start   : std_logic := '0';
     signal swipe_start     : std_logic := '0';
-    signal sram_rdata      : std_logic_vector(31 downto 0) := (others => '0');
 
-    -- Output dello slave 
+    -- Output del Top Level
     signal preload_done    : std_logic;
     signal swipe_done      : std_logic;
-    signal sram_addr       : std_logic_vector(31 downto 0);
-    signal sram_wdata      : std_logic_vector(31 downto 0);
-    signal sram_we         : std_logic_vector(3 downto 0);
-    signal sram_en         : std_logic;
 
 begin
 
     -- 2. Instantiate DUT
-    DUT: entity work.SRAM_Swiper_FSM 
+    DUT: entity work.top_level
         port map (
             clk                   =>   clk,
             areset_n              =>   areset_n,
@@ -35,15 +30,8 @@ begin
             num_w_in              =>   num_w_in,        
             preload_start         =>   preload_start,   
             swipe_start           =>   swipe_start,     
-        
             preload_done          =>   preload_done,    
-            swipe_done            =>   swipe_done,      
-        
-            sram_addr             =>   sram_addr,       
-            sram_wdata            =>   sram_wdata,      
-            sram_rdata            =>   sram_rdata,      
-            sram_we               =>   sram_we,         
-            sram_en               =>   sram_en         
+            swipe_done            =>   swipe_done      
         );
 
     -- 3. Generazione del Clock 
@@ -57,7 +45,7 @@ begin
         ---------------------------------------
         report "[TB] Inizio Simulazione: Esecuzione Reset Hardware";
         areset_n <= '0';
-        wait for 45 ns; 
+        wait for 45 ns; -- Wait
         areset_n <= '1';
         wait for 20 ns; 
 
@@ -69,6 +57,7 @@ begin
         num_w_in <= std_logic_vector(to_unsigned(4, 32)); 
         wait until rising_edge(clk);
         
+        -- Il processore alza il flag di start
         preload_start <= '1';
         
         wait for 40 ns; 
@@ -76,30 +65,17 @@ begin
         wait until preload_done = '1';
         report "[TB] Preload completato dalla FSM!";
 
+        
         wait until rising_edge(clk);
         preload_start <= '0';
 
         wait for 60 ns;
 
-
-        ---------------------------------------
-        -- TEST CASE 2: Esecuzione SWIPE (Placeholder per il futuro)
-        ---------------------------------------
-        -- report "[TB] Test Case 2: Avvio operazione di SWIPE";
-        -- src_addr_in <= std_logic_vector(to_unsigned(0, 32));
-        -- num_w_in <= std_logic_vector(to_unsigned(4, 32));
-        -- wait until rising_edge(clk);
-        -- swipe_start <= '1';
-        -- wait until swipe_done = '1';
-        -- wait until rising_edge(clk);
-        -- swipe_start <= '0';
-        -- wait for 60 ns;
-
         ----------------------
         -- End of simulation -
         ----------------------
         report "[TB] Simulation Finished Successfully";
-        std.env.finish;
+        std.env.finish; 
     end process;
 
 end behavioural;
