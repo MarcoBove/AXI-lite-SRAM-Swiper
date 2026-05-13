@@ -16,11 +16,7 @@ entity AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
     );
     port (
         -- Users to add ports here
-        sram_addr   : out std_logic_vector(31 downto 0);
-        sram_wdata  : out std_logic_vector(31 downto 0);
-        sram_rdata  : in  std_logic_vector(31 downto 0);
-        sram_we     : out std_logic_vector(3 downto 0);
-        sram_en     : out std_logic;
+    
         -- User ports ends
         -- Do not modify the ports beyond this line
 
@@ -119,7 +115,7 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
     signal slv_reg5 :std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
     signal slv_reg6 :std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
     signal slv_reg7 :std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-    signal byte_index   : integer;
+    --signal byte_index   : integer;
 
     signal mem_logic  : std_logic_vector(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
 
@@ -132,33 +128,12 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
     --State machine variables
     signal state_read : std_logic_vector(1 downto 0);
     signal state_write: std_logic_vector(1 downto 0);
+
+    -- User signal
+    signal sig_preload_done : std_logic; 
+    signal sig_swipe_done : std_logic;
     
-    -- FSM Component declaration
-    component SRAM_Swiper_FSM is
-        port (
-            -- Clock e Reset
-            clk             : in  std_logic;
-            areset_n        : in  std_logic;
-
-            -- Interfaccia dai Registri AXI (Input)
-            -- Nota: collegheremo questi ai slv_regX del modulo AXI
-            src_addr_in     : in  std_logic_vector(31 downto 0);
-            num_w_in        : in  std_logic_vector(31 downto 0);
-            preload_start   : in  std_logic; -- Impulso di start per preload
-            swipe_start     : in  std_logic; -- Impulso di start per lo swipe
-
-            -- Interfaccia verso i Registri AXI (Output di Stato)
-            preload_done    : out std_logic;
-            swipe_done      : out std_logic;
-
-            -- Interfaccia Master verso la SRAM
-            sram_addr       : out std_logic_vector(31 downto 0);
-            sram_wdata      : out std_logic_vector(31 downto 0);
-            sram_rdata      : in  std_logic_vector(31 downto 0);
-            sram_we         : out std_logic_vector(3 downto 0); -- 4 bit per gestire i byte
-            sram_en         : out std_logic
-        );
-    end component;
+    -- top level Component declaration
 
     component top_level is
         generic (
@@ -181,7 +156,7 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
             preload_done    : out std_logic;
             swipe_done      : out std_logic 
         );
-    end top_level;
+    end component;
 
 begin
     -- I/O Connections assignments
@@ -401,39 +376,18 @@ begin
     end process;                                            
     -- Implement memory mapped register select and read logic generation
     S_AXI_RDATA <= slv_reg0 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "000" ) else 
-                   slv_reg1 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "001" ) else 
-                   slv_reg2 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "010" ) else 
+                   slv_reg1 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "001" ) else
+                   x"0000000" & "000" & sig_preload_done when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "010" ) else 
+                   --slv_reg2 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "010" ) else 
                    slv_reg3 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "011" ) else 
-                   slv_reg4 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "100" ) else 
-                   slv_reg5 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "101" ) else 
+                   slv_reg4 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "100" ) else
+                   x"0000000" & "000" & sig_swipe_done when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "101" ) else 
+                   --slv_reg5 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "101" ) else 
                    slv_reg6 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "110" ) else 
                    slv_reg7 when (axi_araddr(ADDR_LSB+OPT_MEM_ADDR_BITS downto ADDR_LSB) = "111" ) else 
                    (others => '0');
 
     -- Add user logic here
-    
-    i_swiper_fsm : component SRAM_Swiper_FSM
-        port map (
-            clk             => S_AXI_ACLK,
-            areset_n        => S_AXI_ARESETN,
-            
-            -- Ingressi dai registri slv_reg
-            src_addr_in     => slv_reg0,
-            num_w_in        => slv_reg3,
-            preload_start   => slv_reg1(0), 
-            swipe_start     => slv_reg4(0),
-            
-            -- Uscite verso i registri slv_reg (Stato)
-            preload_done    => slv_reg2(0), 
-            swipe_done      => slv_reg5(0),
-            
-            -- Uscite verso l'esterno 
-            sram_addr       => sram_addr,
-            sram_wdata      => sram_wdata,
-            sram_rdata      => sram_rdata,
-            sram_we         => sram_we,
-            sram_en         => sram_en
-        );
 
     i_top_level: component top_level
         generic map(
@@ -452,10 +406,10 @@ begin
             swipe_start     => slv_reg4(0),
 
             -- Interfaccia verso i Registri AXI (Output di Stato)
-            preload_done    => slv_reg2(0),
-            swipe_done      => slv_reg5(0)             
+            preload_done    => sig_preload_done,
+            swipe_done      => sig_swipe_done             
 
-        )
+        );
 
 
 
