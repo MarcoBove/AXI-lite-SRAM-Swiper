@@ -160,6 +160,29 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI is
         );
     end component;
 
+    component top_level is
+        generic (
+                RESET_VAL  : STD_LOGIC := '0';
+                NUM_WORDS  : integer := 256;
+                DATA_WIDTH : integer := 32
+            );
+        port (
+            -- Clock and Reset
+            clk             : in  std_logic;
+            areset_n        : in  std_logic;
+
+            -- Interfaccia dai Registri AXI (Input)
+            src_addr_in     : in  std_logic_vector(31 downto 0);
+            num_w_in        : in  std_logic_vector(31 downto 0);
+            preload_start   : in  std_logic;
+            swipe_start     : in  std_logic;
+
+            -- Interfaccia verso i Registri AXI (Output di Stato)
+            preload_done    : out std_logic;
+            swipe_done      : out std_logic 
+        );
+    end top_level;
+
 begin
     -- I/O Connections assignments
 
@@ -411,6 +434,30 @@ begin
             sram_we         => sram_we,
             sram_en         => sram_en
         );
+
+    i_top_level: component top_level
+        generic map(
+            RESET_VAL  => '0',
+            NUM_WORDS  => 256,
+            DATA_WIDTH => 32
+        )
+        port map (
+            clk             => S_AXI_ACLK,
+            areset_n        => S_AXI_ARESETN,
+
+            -- Interfaccia dai Registri AXI (Input)
+            src_addr_in     => slv_reg0,
+            num_w_in        => slv_reg3,
+            preload_start   => slv_reg1(0),
+            swipe_start     => slv_reg4(0),
+
+            -- Interfaccia verso i Registri AXI (Output di Stato)
+            preload_done    => slv_reg2(0),
+            swipe_done      => slv_reg5(0)             
+
+        )
+
+
 
     -- User logic ends
 
