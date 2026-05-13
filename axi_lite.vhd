@@ -16,11 +16,7 @@ entity AXI_Lite_SRAM_Swiper is
         );
         port (
                 -- Users to add ports here
-                sram_addr   : out std_logic_vector(31 downto 0); 
-                sram_wdata  : out std_logic_vector(31 downto 0);
-                sram_rdata  : in  std_logic_vector(31 downto 0);
-                sram_we     : out std_logic_vector(3 downto 0);
-                sram_en     : out std_logic;
+        
                 -- User ports ends
                 -- Do not modify the ports beyond this line
 
@@ -60,11 +56,7 @@ architecture arch_imp of AXI_Lite_SRAM_Swiper is
                 );
                 port (
                 -- Users to add ports here
-                sram_addr   : out std_logic_vector(31 downto 0);
-                sram_wdata  : out std_logic_vector(31 downto 0);
-                sram_rdata  : in  std_logic_vector(31 downto 0);
-                sram_we     : out std_logic_vector(3 downto 0);
-                sram_en     : out std_logic;
+                
                 -- User ports ends
                 S_AXI_ACLK      : in std_logic;
                 S_AXI_ARESETN   : in std_logic;
@@ -100,11 +92,7 @@ AXI_Lite_SRAM_Swiper_slave_lite_v1_0_S00_AXI_inst : AXI_Lite_SRAM_Swiper_slave_l
         )
         port map (
                 -- Users to add ports here
-                sram_addr   => sram_addr,
-                sram_wdata  => sram_wdata,
-                sram_rdata  => sram_rdata,
-                sram_we     => sram_we,
-                sram_en     => sram_en,
+                
                 -- User ports ends
                 S_AXI_ACLK      => s00_axi_aclk,
                 S_AXI_ARESETN   => s00_axi_aresetn,
