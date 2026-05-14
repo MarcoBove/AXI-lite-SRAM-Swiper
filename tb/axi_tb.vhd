@@ -2,7 +2,7 @@ library ieee;
 use ieee.STD_LOGIC_1164.all;
 use ieee.numeric_std.all; 
 
-entity axi_tb is -- CORRETTO: Aggiunto 'is'
+entity axi_tb is 
 end entity;
 
 architecture behavioural of axi_tb is
@@ -158,6 +158,33 @@ begin
 
         -- 4. Abbassiamo lo START
         axi_write(x"00000004", x"00000000");
+        
+        wait for 60 ns;
+
+        -- =====================================================================
+        -- TEST 2: OPERAZIONE DI SWIPE
+        -- =====================================================================
+        report "[TB] Inizio Test Swipe via AXI...";
+        
+        -- Impostiamo l'indirizzo di partenza SRC_ADDR = 0 nel Registro 0 (Indirizzo 0x00)
+        axi_write(x"00000000", x"00000000");
+        
+        -- Impostiamo NUM_W = 4 nel Registro 3 (Indirizzo 0x0C)
+        axi_write(x"0000000C", x"00000004");
+        
+        -- Diamo lo START alzando il bit 0 del Registro 4 (Indirizzo 0x10)
+        axi_write(x"00000010", x"00000001");
+        
+        -- Polling sul Registro 5 (Indirizzo 0x14) per aspettare lo SWIPE_DONE
+        loop
+            axi_read(x"00000014", read_data_var);
+            exit when read_data_var(0) = '1';
+        end loop;
+        
+        report "[TB] Swipe completato letto via AXI!";
+
+        -- Abbassiamo lo START per far tornare la FSM in IDLE
+        axi_write(x"00000010", x"00000000");
         
         wait for 60 ns;
 

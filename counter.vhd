@@ -11,6 +11,9 @@ entity counter is
         areset_n : in  STD_LOGIC;
         clear    : in  STD_LOGIC; 
         en       : in  STD_LOGIC;
+        load     : in  STD_LOGIC;
+        d_in     : in  STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0);
+
         q        : out STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0)
     );
 end counter; 
@@ -26,10 +29,13 @@ begin
             count_val <= (others => '0');
         elsif rising_edge(clk) then
             if clear = '1' then
-                count_val <= (others => '0'); -- if FSM set clear, put 0
+                count_val <= (others => '0');
+            elsif load = '1' then
+                count_val <= unsigned(d_in); -- Carica il valore di partenza!
             elsif en = '1' then
-                count_val <= count_val + 1; 
+                count_val <= count_val + 1;
             end if;
+
         end if;
     end process count_up;
 end behavioural;
