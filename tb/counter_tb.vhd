@@ -20,7 +20,7 @@ architecture behavioural of counter_tb is
 
 begin
     -- Instantiate DUT
-     DUT: entity work.counter_beh
+     DUT: entity work.counter
     --DUT: entity work.counter_struct
         generic map (
             DATA_WIDTH => DATA_WIDTH

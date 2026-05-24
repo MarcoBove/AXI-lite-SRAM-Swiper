@@ -3,7 +3,7 @@ use ieee.STD_LOGIC_1164.all;
 
 entity register_flip_flop_d_beh is
     generic (
-        DATA_WIDTH : integer := 8;
+        DATA_WIDTH : integer := 32;
         RESET_VAL  : STD_LOGIC_VECTOR(DATA_WIDTH-1 downto 0) := (others => '0')
     );
     port (

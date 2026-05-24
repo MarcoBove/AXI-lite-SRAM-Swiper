@@ -17,8 +17,8 @@ architecture behavioural of register_flip_flop_d_tb is
 
 begin
     -- Instantiate DUT
-    DUT: entity work.register_flip_flop_d_struct
-    -- DUT: entity work.register_flip_flop_d_beh
+    --DUT: entity work.register_flip_flop_d_struct
+     DUT: entity work.register_flip_flop_d_beh
         generic map (
             RESET_VAL  => RESET_VAL,
             DATA_WIDTH => DATA_WIDTH
